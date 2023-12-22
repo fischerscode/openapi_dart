@@ -1,0 +1,7 @@
+name: openapi_dart
+
+ide:
+  intellij: false
+
+packages:
+  - packages/**
