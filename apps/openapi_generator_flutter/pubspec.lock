@@ -323,17 +323,16 @@ packages:
   openapi_base:
     dependency: "direct overridden"
     description:
-      path: "../openapi_base"
+      path: "../../packages/openapi_base"
       relative: true
     source: path
     version: "1.1.0+3"
   openapi_code_builder:
     dependency: "direct main"
     description:
-      name: openapi_code_builder
-      sha256: "0c060586f3ad1377b1528ed86ff0fed95816131dd8a89cea3d75c9eb944211f1"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../../packages/openapi_code_builder"
+      relative: true
+    source: path
     version: "1.1.4+4"
   package_config:
     dependency: transitive

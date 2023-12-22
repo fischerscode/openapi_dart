@@ -5,3 +5,4 @@ ide:
 
 packages:
   - packages/**
+  - apps/**
