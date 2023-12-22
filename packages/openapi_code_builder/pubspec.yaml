@@ -4,7 +4,7 @@ version: 1.1.4+4
 homepage: https://github.com/hpoul/openapi_dart/tree/master/packages/openapi_code_builder
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
   logging: ">=1.0.1 <2.0.0"
@@ -26,11 +26,3 @@ dependencies:
 
 dev_dependencies:
   lints: ^2.0.0
-
-#dependency_overrides:
-#  openapi_base:
-#    path: ../openapi_base
-#  open_api_forked:
-#    path: ../../deps/open-api-dart
-#  codable_forked:
-#    path: ../../deps/dart-codable
