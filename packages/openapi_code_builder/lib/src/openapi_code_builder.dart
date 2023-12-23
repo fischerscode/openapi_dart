@@ -93,6 +93,11 @@ class OpenApiLibraryGenerator {
       refer('SecurityRequirement', 'package:openapi_base/openapi_base.dart');
   final _securityRequirementScheme = refer(
       'SecurityRequirementScheme', 'package:openapi_base/openapi_base.dart');
+  Reference _securityRequirementSchemeWithData([List<Reference>? generics]) =>
+      _referType('SecurityRequirementSchemeWithData',
+          url: 'package:openapi_base/openapi_base.dart', generics: generics);
+  final _securitySchemeData =
+      refer('SecuritySchemeData', 'package:openapi_base/openapi_base.dart');
   final _securitySchemeHttp =
       refer('SecuritySchemeHttp', 'package:openapi_base/openapi_base.dart');
   final _securitySchemeHttpScheme = refer(
@@ -119,6 +124,7 @@ class OpenApiLibraryGenerator {
   final _void = refer('void');
   final _uint8List = refer('Uint8List', 'dart:typed_data');
   final _typeString = refer('String');
+  final _bool = refer('bool');
   final _literalNullCode = literalNull.code;
 
   static const mediaTypeJson = OpenApiContentType.json;
@@ -864,26 +870,136 @@ class OpenApiLibraryGenerator {
     lb.body.add(Class((cb) {
       cb.name = '${baseName}Router';
       cb.constructors.add(Constructor((cb) => cb
-        ..requiredParameters.add(Parameter((pb) => pb
-          ..name = 'impl'
-          ..toThis = true))));
+        ..requiredParameters.addAll([
+          Parameter((pb) => pb
+            ..name = 'impl'
+            ..toThis = true),
+        ])
+        ..optionalParameters.addAll([
+          for (var MapEntry(key: name, value: _)
+              in api.components?.securitySchemes?.entries ??
+                  <MapEntry<String, APISecurityScheme?>>[])
+            Parameter((pb) => pb
+              ..name = 'validate$name'
+              ..toThis = true
+              ..required = true
+              ..named = true),
+        ])));
       cb.extend = refer(
           'OpenApiServerRouterBase', 'package:openapi_base/openapi_base.dart');
-      cb.fields.add(Field((fb) => fb
-        ..name = 'impl'
-        ..type = _endpointProvider.addGenerics(refer(c.name))
-        ..modifier = FieldModifier.final$));
+      cb.fields.addAll([
+        Field((fb) => fb
+          ..name = 'impl'
+          ..type = _endpointProvider.addGenerics(refer(c.name))
+          ..modifier = FieldModifier.final$),
+        for (var MapEntry(key: name, value: scheme)
+            in api.components?.securitySchemes?.entries ??
+                <MapEntry<String, APISecurityScheme?>>[])
+          Field((f) => f
+            ..name = 'validate$name'
+            ..type = FunctionType((func) => func
+              ..returnType = _referType('Future', generics: [_bool])
+              ..requiredParameters.add(() {
+                final schemaType = ArgumentError.checkNotNull(scheme?.type);
+                switch (schemaType) {
+                  case APISecuritySchemeType.apiKey:
+                    return _securitySchemeApiKey;
+                  case APISecuritySchemeType.http:
+                    return _securitySchemeHttp;
+                  case APISecuritySchemeType.oauth2:
+                  case APISecuritySchemeType.openID:
+                  case APISecuritySchemeType.openIdConnect:
+                    throw StateError('Unsupported security scheme $schemaType');
+                }
+              }()))),
+      ]);
       cb.methods.add(Method((mb) => mb
         ..name = 'configure'
         ..annotations.add(_override)
         ..returns = refer('void')
         ..body = Block.of(routerConfig.map((e) => e!.statement))));
+
+      cb.methods.add(Method((mb) => mb
+        ..name = 'validate'
+        ..annotations.add(_override)
+        ..returns = _referType('Future', generics: [_bool])
+        ..requiredParameters.add(Parameter((p) => p
+          ..name = 'securityRequirementSchemeWithData'
+          ..type = _securityRequirementSchemeWithData(
+              [_securitySchemeData, _securitySchemeData])))
+        ..body = Block.of([
+          _ifStatement(
+            [
+              for (var MapEntry(key: name, value: scheme)
+                  in api.components?.securitySchemes?.entries ??
+                      <MapEntry<String, APISecurityScheme?>>[])
+                (
+                  refer('securityRequirementSchemeWithData')
+                      .property('scheme')
+                      .equalTo(
+                          refer('SecuritySchemes').property(name.camelCase)),
+                  Block.of([
+                    refer('validate$name')
+                        .call([
+                          refer('securityRequirementSchemeWithData')
+                              .property('data')
+                              .asA(() {
+                            switch (scheme?.type) {
+                              case APISecuritySchemeType.apiKey:
+                                return _securitySchemeApiKey;
+                              case APISecuritySchemeType.http:
+                                return _securitySchemeHttp;
+                              case null:
+                              case APISecuritySchemeType.oauth2:
+                              case APISecuritySchemeType.openID:
+                              case APISecuritySchemeType.openIdConnect:
+                                throw StateError(
+                                    'Unsupported security scheme ${scheme?.type}');
+                            }
+                          }())
+                        ])
+                        .returned
+                        .statement,
+                  ])
+                )
+            ],
+            elseBody: refer('UnimplementedError')
+                .newInstance(
+                    [literalString('Unknown SecurityRequirementScheme')])
+                .thrown
+                .statement,
+          )
+        ])));
     }));
     lb.body.add(securitySchemesClass.build());
 
 //       api.paths.map((key, value) => MapEntry(key, refer('ApiPathConfig').newInstance([value.])))
     return lb.build();
   }
+
+  Block _ifStatement(
+    List<(Expression condition, Code body)> conditions, {
+    Code? elseBody,
+  }) =>
+      Block.of([
+        Code('if ('),
+        conditions.first.$1.code,
+        Code(') {'),
+        conditions.first.$2,
+        Code('}'),
+        ...conditions.skip(1).expand((elseIf) => [
+              Code('else if('),
+              elseIf.$1.code,
+              Code(') {'),
+              elseIf.$2,
+              Code('}'),
+            ]),
+        if (elseBody != null) ...[
+          Code('else{'),
+          elseBody,
+          Code('}'),
+        ]
+      ]);
 
   Expression _readFromRequest(APIParameterLocation location, String name) {
     switch (location) {

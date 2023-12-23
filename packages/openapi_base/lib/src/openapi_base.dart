@@ -157,6 +157,10 @@ abstract class OpenApiServerRouterBase {
     final str = paramToString(value).toLowerCase();
     return str == 'true' || str == '1';
   }
+
+  Future<bool> validate(
+      SecurityRequirementSchemeWithData<SecuritySchemeData, SecuritySchemeData>
+          securityRequirementSchemeWithData);
 }
 
 enum Operation {
@@ -204,10 +208,21 @@ class SecurityRequirement {
   List<SecurityRequirementScheme> schemes;
 }
 
-class SecurityRequirementScheme {
+class SecurityRequirementScheme<T extends SecuritySchemeData> {
   SecurityRequirementScheme({required this.scheme, required this.scopes});
-  final SecurityScheme scheme;
+  final SecurityScheme<T> scheme;
   final List<String> scopes;
+}
+
+class SecurityRequirementSchemeWithData<T extends SecuritySchemeData,
+    D extends T?> extends SecurityRequirementScheme<T> {
+  SecurityRequirementSchemeWithData({
+    required this.data,
+    required super.scheme,
+    required super.scopes,
+  });
+
+  final D data;
 }
 
 abstract class OpenApiContent {}

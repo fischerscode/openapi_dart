@@ -11,6 +11,7 @@ import 'package:openapi_base/src/openapi_base.dart';
 import 'package:openapi_base/src/openapi_exception.dart';
 import 'package:openapi_base/src/server/openapi_server_base.dart';
 import 'package:openapi_base/src/server/stoppable_process.dart';
+import 'package:openapi_base/src/util/future.dart';
 import 'package:openapi_base/src/util/internal_utils.dart';
 import 'package:openapi_base/src/util/shelf_cookie/cookie_parser.dart';
 import 'package:openapi_base/src/util/shelf_cookie/shelf_cookie.dart';
@@ -111,8 +112,35 @@ class OpenApiShelfServer extends OpenApiServerBase {
             'remaining path: {${match.rest.path}}: ${match.rest}');
         continue;
       }
-      // TODO handle security constraints.
       final shelfRequest = ShelfRequest(request, match);
+
+      final providedSecurityData = config.security
+          .map((requirement) => requirement.schemes.map((scheme) =>
+              SecurityRequirementSchemeWithData(
+                  data: scheme.scheme.fromRequest(shelfRequest),
+                  scheme: scheme.scheme,
+                  scopes: scheme.scopes)))
+          .map((requirementSchemesWithData) =>
+              requirementSchemesWithData.every((d) => d.data != null)
+                  ? requirementSchemesWithData.cast<
+                      SecurityRequirementSchemeWithData<SecuritySchemeData,
+                          SecuritySchemeData>>()
+                  : null)
+          .nonNulls
+          .toList(growable: false);
+      if ((providedSecurityData.isEmpty && config.security.isNotEmpty) ||
+          // is none valid
+          !(await anyFutureIgnoringErrors(providedSecurityData.map(
+              (requirementSchemesWithData) async =>
+                  // are all valid
+                  !(await anyFutureIgnoringErrors(requirementSchemesWithData
+                      .map((requirementSchemeWithData) async =>
+                          // is the data invalid?
+                          !await router
+                              .validate(requirementSchemeWithData)))))))) {
+        return shelf.Response.forbidden('Forbidden');
+      }
+
       final response = await config.handler(shelfRequest);
       Object? body;
       if (response is OpenApiResponseBodyJson) {
