@@ -122,22 +122,25 @@ class OpenApiShelfServer extends OpenApiServerBase {
                   scopes: scheme.scopes)))
           .map((requirementSchemesWithData) =>
               requirementSchemesWithData.every((d) => d.data != null)
-                  ? requirementSchemesWithData.cast<
-                      SecurityRequirementSchemeWithData<SecuritySchemeData,
-                          SecuritySchemeData>>()
+                  ? requirementSchemesWithData.map((e) =>
+                      SecurityRequirementSchemeWithData(
+                          data: e.data!, scheme: e.scheme, scopes: e.scopes))
                   : null)
           .nonNulls
           .toList(growable: false);
       if ((providedSecurityData.isEmpty && config.security.isNotEmpty) ||
           // is none valid
-          !(await anyFutureIgnoringErrors(providedSecurityData.map(
-              (requirementSchemesWithData) async =>
-                  // are all valid
-                  !(await anyFutureIgnoringErrors(requirementSchemesWithData
-                      .map((requirementSchemeWithData) async =>
-                          // is the data invalid?
-                          !await router
-                              .validate(requirementSchemeWithData)))))))) {
+          !(providedSecurityData.isEmpty ||
+              await anyFutureIgnoringErrors(providedSecurityData.map(
+                  (requirementSchemesWithData) async =>
+                      // are all valid
+                      !(requirementSchemesWithData.isEmpty ||
+                          await anyFutureIgnoringErrors(
+                              requirementSchemesWithData.map(
+                                  (requirementSchemeWithData) async =>
+                                      // is the data invalid?
+                                      !await router.validate(
+                                          requirementSchemeWithData)))))))) {
         return shelf.Response.forbidden('Forbidden');
       }
 
