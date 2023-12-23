@@ -173,10 +173,10 @@ class OpenApiLibraryGenerator {
           .code).closure;
     final clientProviderName = '${baseName}ClientProvider'.camelCase;
     if (generateProvider) {
-      lb.body.add(_provider
-          .addGenerics(refer(clientInterface.name!.pascalCase))
-          ([providerClosure])
-          .assignFinal(clientProviderName)
+      lb.body.add(declareFinal(clientProviderName)
+          .assign(_provider
+              .addGenerics(refer(clientInterface.name!.pascalCase))
+              .call([providerClosure]))
           .statement);
     }
 
@@ -535,14 +535,13 @@ class OpenApiLibraryGenerator {
                 _referType('Future', generics: [refer(responseClass.name!)])
             ..modifier = MethodModifier.async;
           final clientCode = <Code>[
-            _openApiClientRequest
-                .newInstance([
+            declareFinal('request')
+                .assign(_openApiClientRequest.newInstance([
                   literalString(operation.key),
                   literalString(path.key),
                   _operationSecurityRequirements(
                       operation.value!.security ?? api.security),
-                ])
-                .assignFinal('request')
+                ]))
                 .statement,
           ];
           final clientCodeRequest = refer('request');
@@ -604,7 +603,7 @@ class OpenApiLibraryGenerator {
                       return _apiUuid.newInstanceNamed('parse', [asString]);
                     } else if (param.schema?.enumerated?.isNotEmpty == true) {
                       final paramEnumType = paramType;
-                      return refer(paramEnumType.symbol! + 'Ext')
+                      return refer('${paramEnumType.symbol!}Ext')
                           .property('fromName')([asString]);
                     } else if (paramType != _typeString) {
                       throw StateError(
@@ -808,9 +807,9 @@ class OpenApiLibraryGenerator {
                 mb.requiredParameters.add(Parameter((pb) => pb..name = 'arg'));
               }
               mb.body = Block.of([
-                refer('ref')
-                    .property('watch')([refer(clientProviderName)])
-                    .assignFinal('client')
+                declareFinal('client')
+                    .assign(refer('ref')
+                        .property('watch')([refer(clientProviderName)]))
                     .statement,
                 refer('Stream')
                     .property('fromFuture')(
@@ -851,7 +850,8 @@ class OpenApiLibraryGenerator {
                     : params.first.type!
               ]);
             }
-            lb.body.add(createProvider.assignFinal(providerName).statement);
+            lb.body.add(
+                declareFinal(providerName).assign(createProvider).statement);
           }
         }
       }
@@ -932,7 +932,7 @@ class OpenApiLibraryGenerator {
       List<Code> clientCode) {
     _logger.finer('reqBody.schema: ${reqBody.schema}');
 
-    void _addRequestBody(
+    void addRequestBody(
         Reference bodyType, Expression encodeBody, Expression? decodeBody) {
       mb.addDartDoc(reqBody.schema!.description, prefix: '[body]:');
       mb.requiredParameters.add(
@@ -959,13 +959,13 @@ class OpenApiLibraryGenerator {
         .statement);
 
     if (contentType.matches(OpenApiContentType.textPlain)) {
-      _addRequestBody(
+      addRequestBody(
         _typeString,
         _openApiClientRequestBodyText.newInstance([refer('body')]),
         refer('request').property('readBodyString')([]).awaited,
       );
     } else if (contentType.matches(OpenApiContentType.octetStream)) {
-      _addRequestBody(
+      addRequestBody(
         _toDartType(operationName, reqBody.schema!),
         _openApiClientRequestBodyBinary.newInstance([refer('body')]),
         refer('request').property('readBodyBytes')([]).awaited,
@@ -979,7 +979,7 @@ class OpenApiLibraryGenerator {
           : (contentType.matches(OpenApiContentType.urlencoded)
               ? refer('request').property('readUrlEncodedBodyFlat')([]).awaited
               : literalConstMap({}, refer('String'), refer('dynamic')));
-      _addRequestBody(
+      addRequestBody(
           reference,
           _openApiClientRequestBodyJson
               .newInstance([refer('body').property('toJson')([])]),
@@ -1375,7 +1375,6 @@ class OpenApiLibraryGenerator {
       case APISecuritySchemeType.openID:
       case APISecuritySchemeType.openIdConnect:
         throw StateError('Unsupported security scheme ${value.type}');
-        break;
     }
     // throw StateError(
     //     'Should not happen - unsupported security scheme ${value.type}');
