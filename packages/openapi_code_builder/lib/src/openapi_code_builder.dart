@@ -1379,9 +1379,9 @@ class OpenApiLibraryGenerator {
           ..name = '_additionalProperties'
           ..type = _referType(
             'Map',
-            generics: [_typeString, refer('Object')],
+            generics: [_typeString, refer('dynamic')],
           )
-          ..assignment = literalMap({}, _typeString, refer('Object')).code
+          ..assignment = literalMap({}, _typeString, refer('dynamic')).code
           ..modifier = FieldModifier.final$));
         cb.methods.add(
           Method((mb) => mb
@@ -1392,7 +1392,7 @@ class OpenApiLibraryGenerator {
               ..type = _typeString))
             ..requiredParameters.add(Parameter((pb) => pb
               ..name = 'value'
-              ..type = refer('Object')))
+              ..type = refer('dynamic')))
             ..lambda = true
             ..body = refer('_additionalProperties')
                 .index(refer('key'))
@@ -1402,7 +1402,7 @@ class OpenApiLibraryGenerator {
         cb.methods.add(
           Method((mb) => mb
             ..name = 'operator[]'
-            ..returns = refer('Object')
+            ..returns = refer('dynamic')
             ..requiredParameters.add(Parameter((pb) => pb
               ..name = 'key'
               ..type = _typeString))
