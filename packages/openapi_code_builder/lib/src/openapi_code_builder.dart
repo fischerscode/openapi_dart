@@ -722,12 +722,13 @@ class OpenApiLibraryGenerator {
               final paramName = ArgumentError.checkNotNull(param.name);
               routerParamsNamed[paramNameCamelCase] =
                   decodeParameter(_readFromRequest(paramLocation, paramName));
-              clientCode.add(_writeToRequest(
-                clientCodeRequest,
-                paramLocation,
-                paramName,
-                encodeParameter(refer(paramNameCamelCase)),
-              ).statement);
+              clientCode.add(_writeNullableToRequest(
+                  clientCodeRequest,
+                  paramLocation,
+                  paramName,
+                  encodeParameter(refer(paramNameCamelCase)),
+                  refer(paramNameCamelCase),
+                  param.allowEmptyValue ?? false));
             }
             final urlResolverMethod = clientMethod.build().toBuilder()
               ..returns = _openApiClientRequest
@@ -1017,6 +1018,21 @@ class OpenApiLibraryGenerator {
             .property('cookieParameter')([literalString(name)]);
     }
     // throw StateError('Invalid location: $location');
+  }
+
+  Block _writeNullableToRequest(
+      Reference request,
+      APIParameterLocation location,
+      String name,
+      Expression value,
+      Reference variable,
+      [bool nullable = true]) {
+    return _ifStatement([
+      (
+        variable.notEqualTo(literalNull),
+        _writeToRequest(request, location, name, value).statement
+      )
+    ]);
   }
 
   Expression _writeToRequest(Reference request, APIParameterLocation location,
@@ -1483,7 +1499,7 @@ class OpenApiLibraryGenerator {
                   ..name = 'value'
                   ..type = _typeString))
                 ..body = _writeToRequest(refer('request'), location, valueName,
-                    literalList([refer('value')])).code).closure,
+                    literalList([refer('value')])).statement).closure,
             }).code),
         );
         return refer(securitySchemesClass.name!).property(name.camelCase);
