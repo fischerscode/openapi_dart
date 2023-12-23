@@ -100,10 +100,14 @@ class OpenApiLibraryGenerator {
       refer('SecuritySchemeData', 'package:openapi_base/openapi_base.dart');
   final _securitySchemeHttp =
       refer('SecuritySchemeHttp', 'package:openapi_base/openapi_base.dart');
+  final _securitySchemeHttpData =
+      refer('SecuritySchemeHttpData', 'package:openapi_base/openapi_base.dart');
   final _securitySchemeHttpScheme = refer(
       'SecuritySchemeHttpScheme', 'package:openapi_base/openapi_base.dart');
   final _securitySchemeApiKey =
       refer('SecuritySchemeApiKey', 'package:openapi_base/openapi_base.dart');
+  final _securitySchemeApiKeyData = refer(
+      'SecuritySchemeApiKeyData', 'package:openapi_base/openapi_base.dart');
   final _openApiContentType =
       refer('OpenApiContentType', 'package:openapi_base/openapi_base.dart');
   final _openApiContentTypeNullable =
@@ -904,9 +908,9 @@ class OpenApiLibraryGenerator {
                 final schemaType = ArgumentError.checkNotNull(scheme?.type);
                 switch (schemaType) {
                   case APISecuritySchemeType.apiKey:
-                    return _securitySchemeApiKey;
+                    return _securitySchemeApiKeyData;
                   case APISecuritySchemeType.http:
-                    return _securitySchemeHttp;
+                    return _securitySchemeHttpData;
                   case APISecuritySchemeType.oauth2:
                   case APISecuritySchemeType.openID:
                   case APISecuritySchemeType.openIdConnect:
@@ -947,9 +951,9 @@ class OpenApiLibraryGenerator {
                               .asA(() {
                             switch (scheme?.type) {
                               case APISecuritySchemeType.apiKey:
-                                return _securitySchemeApiKey;
+                                return _securitySchemeApiKeyData;
                               case APISecuritySchemeType.http:
-                                return _securitySchemeHttp;
+                                return _securitySchemeHttpData;
                               case null:
                               case APISecuritySchemeType.oauth2:
                               case APISecuritySchemeType.openID:
