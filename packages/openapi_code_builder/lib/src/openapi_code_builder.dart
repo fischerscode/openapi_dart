@@ -1409,6 +1409,14 @@ class OpenApiLibraryGenerator {
             ..lambda = true
             ..body = refer('_additionalProperties').index(refer('key')).code),
         );
+        cb.methods.add(Method((mb) => mb
+          ..name = 'additionalPropertyKeys'
+          ..returns = refer('List').addGenerics(refer('String'))
+          ..lambda = true
+          ..body = refer('_additionalProperties')
+              .property('keys')
+              .property('toList')
+              .call([]).code));
       }
     });
     return c;
