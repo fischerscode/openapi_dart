@@ -10,7 +10,12 @@ dependencies:
   logging: ^1.0.1
   logging_appenders: ^1.1.0
   meta: ^1.5.0
-  openapi_base: ^1.1.0
+  # openapi_base: ^1.1.0
+  openapi_base:
+    git:
+      url: https://github.com/fischerscode/openapi_dart.git
+      ref: dev
+      path: packages/openapi_base
   path: ^1.8.0
   dart_style: ^2.0.1
   code_builder: ^4.0.0
